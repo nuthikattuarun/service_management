@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Create Service Request - Service Management{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Create Service Request</h1>
+        <p>Submit a new service ticket with category and priority details.</p>
+    </div>
+    <div>
+        <a href="{% url 'requests_list' %}" class="btn btn-secondary">← Back to Requests</a>
+    </div>
+</div>
+
+<div class="form-card">
+    <form method="post" action="{% url 'request_create' %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="title">Request Title *</label>
+            <input type="text" id="title" name="title" class="form-control" placeholder="e.g. AC cooling issue in Server Room" required autofocus>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="category">Category *</label>
+                <select id="category" name="category" class="form-select" required>
+                    <option value="">Select a category</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="priority">Priority Level *</label>
+                <select id="priority" name="priority" class="form-select" required>
+                    {% for code, label in priority_choices %}
+                        <option value="{{ code }}" {% if code == 'MEDIUM' %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Detailed Description *</label>
+            <textarea id="description" name="description" class="form-control" rows="5" placeholder="Provide full details regarding the issue or service needed..." required></textarea>
+        </div>
+
+        <div style="display:flex; gap:12px; margin-top:24px;">
+            <button type="submit" class="btn btn-primary">Submit Request</button>
+            <a href="{% url 'requests_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

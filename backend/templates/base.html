@@ -1,0 +1,111 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Service Management{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+
+    <header class="header">
+        <div class="brand-area">
+            <div class="brand-logo">SM</div>
+            <h2>SERVICE MANAGEMENT</h2>
+        </div>
+
+        <div class="header-actions">
+            {% if request.user.is_authenticated %}
+                <div class="user-badge">
+                    <span>{{ request.user.email }}</span>
+                    <span class="role-tag">{{ request.user.role }}</span>
+                </div>
+                {% if request.user.is_staff or request.user.role == 'ADMIN' %}
+                    <a href="/admin/" target="_blank">Django Admin</a>
+                {% endif %}
+                <form action="{% url 'ui_logout' %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-logout">Logout</button>
+                </form>
+            {% else %}
+                <a href="{% url 'ui_login' %}">Login</a>
+                <a href="{% url 'ui_register' %}" class="btn btn-primary btn-sm">Register</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar-heading">Navigation</div>
+            
+            <a href="{% url 'dashboard' %}" class="{% if active_tab == 'dashboard' %}active{% endif %}">
+                <span class="nav-icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+
+            <a href="{% url 'requests_list' %}" class="{% if active_tab == 'requests' %}active{% endif %}">
+                <span class="nav-icon">📋</span>
+                <span>Requests</span>
+            </a>
+
+            <a href="{% url 'assignments_list' %}" class="{% if active_tab == 'assignments' %}active{% endif %}">
+                <span class="nav-icon">👤</span>
+                <span>Assignments</span>
+            </a>
+
+            <a href="{% url 'attachments_list' %}" class="{% if active_tab == 'attachments' %}active{% endif %}">
+                <span class="nav-icon">📎</span>
+                <span>Attachments</span>
+            </a>
+
+            <a href="{% url 'comments_list' %}" class="{% if active_tab == 'comments' %}active{% endif %}">
+                <span class="nav-icon">💬</span>
+                <span>Comments</span>
+            </a>
+
+            <a href="{% url 'notifications_list' %}" class="{% if active_tab == 'notifications' %}active{% endif %}">
+                <span class="nav-icon">🔔</span>
+                <span>Notifications</span>
+                {% if unread_notifications_count %}
+                    <span class="sidebar-badge">{{ unread_notifications_count }}</span>
+                {% endif %}
+            </a>
+
+            <a href="{% url 'categories_list' %}" class="{% if active_tab == 'categories' %}active{% endif %}">
+                <span class="nav-icon">🏷️</span>
+                <span>Categories</span>
+            </a>
+
+            <div class="sidebar-heading" style="margin-top: auto;">Account</div>
+            {% if request.user.is_authenticated %}
+                <form action="{% url 'ui_logout' %}" method="post" style="display:block; padding: 0 4px;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-logout" style="width:100%; text-align:left; color:#f87171; padding: 10px 14px;">🚪 Sign Out</button>
+                </form>
+            {% else %}
+                <a href="{% url 'ui_login' %}">
+                    <span class="nav-icon">🔑</span>
+                    <span>Sign In</span>
+                </a>
+            {% endif %}
+        </aside>
+
+        <main class="content">
+            {% if messages %}
+                <div class="alerts-container">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags|default:'info' }}">
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
+
+</body>
+</html>

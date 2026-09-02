@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Assignments - Service Management{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Staff Assignments</h1>
+        <p>Manage and track service request allocations to support staff and technicians.</p>
+    </div>
+</div>
+
+<div class="detail-grid">
+    <!-- Left: Assignments Table -->
+    <div class="table-box" style="margin-bottom:0;">
+        <div class="table-header">
+            <h2>Active & Historical Assignments</h2>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Request #</th>
+                    <th>Assigned Technician</th>
+                    <th>Assigned By</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for assign in assignments %}
+                <tr>
+                    <td>
+                        <a href="{% url 'request_detail' pk=assign.service_request.id %}" style="color:var(--primary); font-weight:700; text-decoration:none;">
+                            {{ assign.service_request.request_number }}
+                        </a>
+                    </td>
+                    <td>
+                        <strong>{{ assign.assigned_to.first_name }} {{ assign.assigned_to.last_name }}</strong>
+                        <div style="font-size:12px; color:#64748b;">{{ assign.assigned_to.email }}</div>
+                    </td>
+                    <td>{{ assign.assigned_by.first_name }} {{ assign.assigned_by.last_name }}</td>
+                    <td>{{ assign.assigned_at|date:"M d, Y" }}</td>
+                    <td>
+                        <a href="{% url 'request_detail' pk=assign.service_request.id %}" class="btn btn-secondary btn-sm">View Ticket</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="empty-state">No assignments recorded yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Right: New Assignment Form -->
+    <div>
+        <div class="detail-card">
+            <h3>Assign a Request</h3>
+            {% if unassigned_requests %}
+                <form method="post" action="{% url 'assignment_create' %}">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="service_request">Select Open Request *</label>
+                        <select id="service_request" name="service_request" class="form-select" required>
+                            <option value="">Choose a ticket...</option>
+                            {% for req in unassigned_requests %}
+                                <option value="{{ req.id }}">{{ req.request_number }} - {{ req.title|truncatechars:30 }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="assigned_to">Assign to Staff/Technician *</label>
+                        <select id="assigned_to" name="assigned_to" class="form-select" required>
+                            <option value="">Choose staff...</option>
+                            {% for staff in staff_users %}
+                                <option value="{{ staff.id }}">{{ staff.first_name }} {{ staff.last_name }} ({{ staff.role }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width:100%;">Create Assignment</button>
+                </form>
+            {% else %}
+                <p style="font-size:14px; color:#10b981; font-weight:600;">All pending service requests are currently assigned! 🎉</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

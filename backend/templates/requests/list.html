@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Service Requests - Service Management{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Service Requests</h1>
+        <p>Browse, filter, and manage all logged service tickets.</p>
+    </div>
+    <div>
+        <a href="{% url 'request_create' %}" class="btn btn-primary">+ New Request</a>
+    </div>
+</div>
+
+<div class="table-box">
+    <div class="table-header">
+        <form method="get" action="{% url 'requests_list' %}" class="filter-bar" style="width:100%;">
+            <input type="text" name="search" class="form-control" style="width:240px;" placeholder="Search request # or title..." value="{{ search_query|default:'' }}">
+            
+            <select name="status" class="form-select" style="width:160px;">
+                <option value="">All Statuses</option>
+                {% for code, label in status_choices %}
+                    <option value="{{ code }}" {% if selected_status == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+
+            <select name="priority" class="form-select" style="width:160px;">
+                <option value="">All Priorities</option>
+                {% for code, label in priority_choices %}
+                    <option value="{{ code }}" {% if selected_priority == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+
+            <select name="category" class="form-select" style="width:160px;">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+
+            <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+            <a href="{% url 'requests_list' %}" class="btn btn-secondary btn-sm">Reset</a>
+        </form>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Request #</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Created By</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for req in requests %}
+            <tr>
+                <td><strong>{{ req.request_number }}</strong></td>
+                <td>{{ req.title }}</td>
+                <td>{{ req.category.name }}</td>
+                <td>
+                    <span class="badge badge-priority-{{ req.priority|lower }}">
+                        {{ req.get_priority_display }}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge badge-{{ req.status|lower }}">
+                        {{ req.get_status_display }}
+                    </span>
+                </td>
+                <td>{{ req.created_by.first_name }} {{ req.created_by.last_name }}</td>
+                <td>{{ req.created_at|date:"M d, Y" }}</td>
+                <td>
+                    <a href="{% url 'request_detail' pk=req.id %}" class="btn btn-primary btn-sm">View Details</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="empty-state">No service requests match the specified criteria.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

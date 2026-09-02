@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Categories - Service Management{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Service Categories</h1>
+        <p>Service request classification and routing categories.</p>
+    </div>
+</div>
+
+<div class="detail-grid">
+    <!-- Left: Categories Table -->
+    <div class="table-box" style="margin-bottom:0;">
+        <div class="table-header">
+            <h2>Configured Categories</h2>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Category Name</th>
+                    <th>Description</th>
+                    <th>Total Requests</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cat in categories %}
+                <tr>
+                    <td><strong>{{ cat.name }}</strong></td>
+                    <td style="color:#64748b;">{{ cat.description|default:"—" }}</td>
+                    <td>
+                        <span style="font-weight:700; color:var(--primary);">{{ cat.request_count }}</span> tickets
+                    </td>
+                    <td>
+                        {% if cat.is_active %}
+                            <span class="badge badge-resolved">Active</span>
+                        {% else %}
+                            <span class="badge badge-closed">Inactive</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="empty-state">No categories configured yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Right: New Category Form (Admin / Manager) -->
+    <div>
+        <div class="detail-card">
+            <h3>Add New Category</h3>
+            {% if request.user.role != 'CUSTOMER' %}
+                <form method="post" action="{% url 'category_create' %}">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="name">Category Name *</label>
+                        <input type="text" id="name" name="name" class="form-control" placeholder="e.g. IT & Networking" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" class="form-control" rows="3" placeholder="Brief description of issues under this category..."></textarea>
+                    </div>
+
+                    <div class="form-group" style="display:flex; align-items:center; gap:8px;">
+                        <input type="checkbox" id="is_active" name="is_active" checked style="width:16px; height:16px;">
+                        <label for="is_active" style="margin-bottom:0; cursor:pointer;">Active</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width:100%;">Save Category</button>
+                </form>
+            {% else %}
+                <p style="font-size:13px; color:#64748b;">Only support staff, managers, and admins can add new categories.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

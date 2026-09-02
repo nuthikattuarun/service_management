@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Attachments - Service Management{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Attachments Repository</h1>
+        <p>View, download, and manage uploaded files across all service requests.</p>
+    </div>
+</div>
+
+<div class="detail-grid">
+    <!-- Left: Attachments Table -->
+    <div class="table-box" style="margin-bottom:0;">
+        <div class="table-header">
+            <h2>All Uploaded Files</h2>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>File Name</th>
+                    <th>Associated Request</th>
+                    <th>Uploaded By</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for att in attachments %}
+                <tr>
+                    <td>
+                        <div style="font-weight:600; display:flex; align-items:center; gap:8px;">
+                            <span>📎</span>
+                            <span>{{ att.original_name }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <a href="{% url 'request_detail' pk=att.service_request.id %}" style="color:var(--primary); font-weight:700; text-decoration:none;">
+                            {{ att.service_request.request_number }}
+                        </a>
+                    </td>
+                    <td>{{ att.uploaded_by.first_name }} {{ att.uploaded_by.last_name }}</td>
+                    <td>{{ att.uploaded_at|date:"M d, Y" }}</td>
+                    <td>
+                        <a href="{{ att.file.url }}" target="_blank" class="btn btn-secondary btn-sm">Download / View</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="empty-state">No attachments have been uploaded yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Right: Upload Form -->
+    <div>
+        <div class="detail-card">
+            <h3>Upload New File</h3>
+            {% if requests %}
+                <form method="post" action="{% url 'attachment_create' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="service_request">Service Request *</label>
+                        <select id="service_request" name="service_request" class="form-select" required>
+                            <option value="">Select ticket...</option>
+                            {% for req in requests %}
+                                <option value="{{ req.id }}">{{ req.request_number }} - {{ req.title|truncatechars:28 }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="file">Select File *</label>
+                        <input type="file" id="file" name="file" class="form-control" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width:100%;">Upload File</button>
+                </form>
+            {% else %}
+                <p style="font-size:13px; color:#64748b;">No service requests available for attachment upload.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

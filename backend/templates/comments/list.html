@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Comments - Service Management{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Comments & Discussions</h1>
+        <p>Recent communications and updates across service requests.</p>
+    </div>
+</div>
+
+<div class="detail-grid">
+    <!-- Left: Comments Feed / Table -->
+    <div class="table-box" style="margin-bottom:0;">
+        <div class="table-header">
+            <h2>Recent Activity Feed</h2>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Request #</th>
+                    <th>Author</th>
+                    <th>Comment</th>
+                    <th>Date & Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for comm in comments %}
+                <tr>
+                    <td>
+                        <a href="{% url 'request_detail' pk=comm.service_request.id %}" style="color:var(--primary); font-weight:700; text-decoration:none;">
+                            {{ comm.service_request.request_number }}
+                        </a>
+                    </td>
+                    <td>
+                        <strong>{{ comm.user.first_name }} {{ comm.user.last_name }}</strong>
+                        <div style="font-size:11px; color:#64748b;">{{ comm.user.role }}</div>
+                    </td>
+                    <td style="max-width:350px;">
+                        <div style="color:#1e293b; line-height:1.4;">{{ comm.message }}</div>
+                    </td>
+                    <td>{{ comm.created_at|date:"M d, Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="empty-state">No comments posted yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Right: Quick Post Comment Form -->
+    <div>
+        <div class="detail-card">
+            <h3>Post a Comment</h3>
+            {% if requests %}
+                <form method="post" action="{% url 'comment_create' %}">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="service_request">Target Service Request *</label>
+                        <select id="service_request" name="service_request" class="form-select" required>
+                            <option value="">Select ticket...</option>
+                            {% for req in requests %}
+                                <option value="{{ req.id }}">{{ req.request_number }} - {{ req.title|truncatechars:28 }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="message">Message / Note *</label>
+                        <textarea id="message" name="message" class="form-control" rows="4" placeholder="Enter message here..." required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width:100%;">Post Comment</button>
+                </form>
+            {% else %}
+                <p style="font-size:13px; color:#64748b;">No service requests available to comment on.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
