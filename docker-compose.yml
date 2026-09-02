@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: service-management-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app/backend
+      - static_volume:/app/backend/staticfiles
+      - media_volume:/app/backend/media
+    environment:
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=localhost,127.0.0.1,web
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - PGSSLMODE=${PGSSLMODE}
+      - PGCHANNELBINDING=${PGCHANNELBINDING}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ACCESS_TOKEN_LIFETIME_DAYS=${JWT_ACCESS_TOKEN_LIFETIME_DAYS}
+      - JWT_REFRESH_TOKEN_LIFETIME_DAYS=${JWT_REFRESH_TOKEN_LIFETIME_DAYS}
+    env_file:
+      - backend/.env
+    depends_on:
+      - postgres
+    networks:
+      - service-network
+    restart: unless-stopped
+
+  # Optional: Local PostgreSQL (comment out if using Neon only)
+  postgres:
+    image: postgres:15-alpine
+    container_name: service-management-db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${DB_NAME:-neondb}
+      - POSTGRES_USER=${DB_USER:-neondb_owner}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-localdevpassword}
+    ports:
+      - "5432:5432"
+    networks:
+      - service-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
+
+networks:
+  service-network:
+    driver: bridge
