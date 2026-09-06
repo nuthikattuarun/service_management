@@ -13,63 +13,91 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
+from pathlib import Path
 
 load_dotenv()
 
-from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
+# ============================================================
+# SECURITY
+# ============================================================
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv(
     "SECRET_KEY",
     "django-insecure-2fac#wxx+bnur-ivb_^d1&&_*ofvl)^0g2ky83sgh#kf8hl#x$",
 )
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+ALLOWED_HOSTS = os.getenv(
+    "ALLOWED_HOSTS",
+    "localhost,127.0.0.1"
+).split(",")
+
+CSRF_TRUSTED_ORIGINS = os.getenv(
+    "CSRF_TRUSTED_ORIGINS",
+    ""
+).split(",")
 
 
-# Application definition
+# Render / reverse proxy HTTPS configuration
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+
+# ============================================================
+# APPLICATION DEFINITION
+# ============================================================
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'rest_framework',
-    'drf_spectacular',
-    'apps.users',
-    'apps.authentication',
-    'apps.categories',
-    'apps.service_requests',
-    'apps.assignments',
-    'apps.comments',
-    'apps.attachments',
-    'apps.notifications',
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+
+    "rest_framework",
+    "drf_spectacular",
+
+    "apps.users",
+    "apps.authentication",
+    "apps.categories",
+    "apps.service_requests",
+    "apps.assignments",
+    "apps.comments",
+    "apps.attachments",
+    "apps.notifications",
 ]
+
+
+# ============================================================
+# MIDDLEWARE
+# ============================================================
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = 'config.urls'
+
+ROOT_URLCONF = "config.urls"
+
+WSGI_APPLICATION = "config.wsgi.application"
+
+
+# ============================================================
+# TEMPLATES
+# ============================================================
 
 TEMPLATES = [
     {
@@ -86,78 +114,146 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'config.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/6.1/ref/settings/#databases
+# ============================================================
+# DATABASE
+# ============================================================
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME") or os.getenv("PGDATABASE", "neondb"),
-        "USER": os.getenv("DB_USER") or os.getenv("PGUSER", "neondb_owner"),
-        "PASSWORD": os.getenv("DB_PASSWORD") or os.getenv("PGPASSWORD"),
-        "HOST": os.getenv("DB_HOST") or os.getenv("PGHOST"),
+
+        "NAME": (
+            os.getenv("DB_NAME")
+            or os.getenv("PGDATABASE", "neondb")
+        ),
+
+        "USER": (
+            os.getenv("DB_USER")
+            or os.getenv("PGUSER", "neondb_owner")
+        ),
+
+        "PASSWORD": (
+            os.getenv("DB_PASSWORD")
+            or os.getenv("PGPASSWORD")
+        ),
+
+        "HOST": (
+            os.getenv("DB_HOST")
+            or os.getenv("PGHOST")
+        ),
+
         "PORT": os.getenv("DB_PORT", "5432"),
+
         "OPTIONS": {
-            "sslmode": os.getenv("PGSSLMODE", "require"),
+            "sslmode": os.getenv(
+                "PGSSLMODE",
+                "require"
+            ),
         },
     }
 }
 
-# Password validation
-# https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
+
+# ============================================================
+# PASSWORD VALIDATION
+# ============================================================
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "UserAttributeSimilarityValidator"
+        ),
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "MinimumLengthValidator"
+        ),
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "CommonPasswordValidator"
+        ),
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "NumericPasswordValidator"
+        ),
     },
 ]
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/6.1/topics/i18n/
+# ============================================================
+# INTERNATIONALIZATION
+# ============================================================
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.1/howto/static-files/
+# ============================================================
+# STATIC FILES
+# ============================================================
 
 STATIC_URL = "static/"
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_DIRS = [BASE_DIR / "static",]
 
-# WhiteNoise Configuration
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATIC_ROOT = os.path.join(
+    BASE_DIR,
+    "staticfiles"
+)
+
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
 
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
+# WhiteNoise
+STATICFILES_STORAGE = (
+    "whitenoise.storage.CompressedManifestStaticFilesStorage"
+)
+
+
+# ============================================================
+# MEDIA FILES
+# ============================================================
+
+MEDIA_URL = "/media/"
+
+MEDIA_ROOT = BASE_DIR / "media"
+
+
+# ============================================================
+# EMAIL
+# ============================================================
 
 MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+    "default": {
+        "BACKEND": (
+            "django.core.mail.backends.console.EmailBackend"
+        ),
     },
 }
 
+
+# ============================================================
+# CUSTOM USER MODEL
+# ============================================================
+
 AUTH_USER_MODEL = "users.User"
+
+
+# ============================================================
+# DJANGO REST FRAMEWORK
+# ============================================================
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -173,30 +269,86 @@ REST_FRAMEWORK = {
     ),
 
     "PAGE_SIZE": 10,
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+
+    "DEFAULT_SCHEMA_CLASS": (
+        "drf_spectacular.openapi.AutoSchema"
+    ),
 }
+
+
+# ============================================================
+# JWT
+# ============================================================
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(
-        days=int(os.getenv("JWT_ACCESS_TOKEN_LIFETIME_DAYS", "1")),
-        minutes=int(os.getenv("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", "0")),
+        days=int(
+            os.getenv(
+                "JWT_ACCESS_TOKEN_LIFETIME_DAYS",
+                "1"
+            )
+        ),
+        minutes=int(
+            os.getenv(
+                "JWT_ACCESS_TOKEN_LIFETIME_MINUTES",
+                "0"
+            )
+        ),
     ),
+
     "REFRESH_TOKEN_LIFETIME": timedelta(
-        days=int(os.getenv("JWT_REFRESH_TOKEN_LIFETIME_DAYS", "7"))
+        days=int(
+            os.getenv(
+                "JWT_REFRESH_TOKEN_LIFETIME_DAYS",
+                "7"
+            )
+        )
     ),
-    "ROTATE_REFRESH_TOKENS": os.getenv("JWT_ROTATE_REFRESH_TOKENS", "True").lower() == "true",
+
+    "ROTATE_REFRESH_TOKENS": (
+        os.getenv(
+            "JWT_ROTATE_REFRESH_TOKENS",
+            "True"
+        ).lower() == "true"
+    ),
+
     "BLACKLIST_AFTER_ROTATION": False,
+
     "UPDATE_LAST_LOGIN": True,
-    "SIGNING_KEY": os.getenv("JWT_SECRET_KEY") or os.getenv("SECRET_KEY") or SECRET_KEY,
-    "AUTH_HEADER_TYPES": ("Bearer",),
+
+    "SIGNING_KEY": (
+        os.getenv("JWT_SECRET_KEY")
+        or os.getenv("SECRET_KEY")
+        or SECRET_KEY
+    ),
+
+    "AUTH_HEADER_TYPES": (
+        "Bearer",
+    ),
 }
+
+
+# ============================================================
+# DRF SPECTACULAR / SWAGGER
+# ============================================================
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Service Management API",
-    "DESCRIPTION": "Comprehensive API documentation for the Service Management system covering user authentication, service request lifecycle, staff assignments, comments, attachments, categories, and notifications.",
+
+    "DESCRIPTION": (
+        "Comprehensive API documentation for the "
+        "Service Management system covering user "
+        "authentication, service request lifecycle, "
+        "staff assignments, comments, attachments, "
+        "categories, and notifications."
+    ),
+
     "VERSION": "1.0.0",
+
     "SERVE_INCLUDE_SCHEMA": False,
+
     "COMPONENT_SPLIT_REQUEST": True,
+
     "SWAGGER_UI_SETTINGS": {
         "deepLinking": True,
         "persistAuthorization": True,
@@ -204,25 +356,48 @@ SPECTACULAR_SETTINGS = {
     },
 }
 
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+
+# ============================================================
+# LOGIN / LOGOUT
+# ============================================================
 
 LOGIN_URL = "/ui/login/"
+
 LOGIN_REDIRECT_URL = "/"
+
 LOGOUT_REDIRECT_URL = "/ui/login/"
 
-# Production Security Settings
-# Only enable in production (DEBUG=False)
+
+# ============================================================
+# PRODUCTION SECURITY
+# ============================================================
+
 if not DEBUG:
+
     SECURE_SSL_REDIRECT = True
+
     SESSION_COOKIE_SECURE = True
+
     CSRF_COOKIE_SECURE = True
+
     SECURE_HSTS_SECONDS = 31536000
+
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+
     SECURE_HSTS_PRELOAD = True
+
     SECURE_BROWSER_XSS_FILTER = True
+
     SECURE_CONTENT_SECURITY_POLICY = {
         "default-src": ("'self'",),
-        "script-src": ("'self'", "'unsafe-inline'"),
-        "style-src": ("'self'", "'unsafe-inline'"),
+
+        "script-src": (
+            "'self'",
+            "'unsafe-inline'",
+        ),
+
+        "style-src": (
+            "'self'",
+            "'unsafe-inline'",
+        ),
     }
