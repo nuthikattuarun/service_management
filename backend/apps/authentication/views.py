@@ -1,11 +1,11 @@
+import logging
 from drf_spectacular.utils import OpenApiResponse, extend_schema
-from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from apps.users.models import User
+from apps.users.models import User, UserRole
 from .serializers import (
     LoginRequestSerializer,
     LoginResponseSerializer,
@@ -14,9 +14,15 @@ from .serializers import (
     UserResponseSerializer,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class RegisterView(APIView):
-    permission_classes = [AllowAny]
+    """
+    Public registration endpoint for new customer onboarding.
+    """
+
+    permission_classes = [permissions.AllowAny]
 
     @extend_schema(
         tags=["Authentication"],
@@ -29,21 +35,21 @@ class RegisterView(APIView):
         },
     )
     def post(self, request):
-        email = request.data.get("email")
-        password = request.data.get("password")
-        first_name = request.data.get("first_name")
-        last_name = request.data.get("last_name")
-        phone = request.data.get("phone", "")
+        email = request.data.get("email", "").strip().lower()
+        password = request.data.get("password", "")
+        first_name = request.data.get("first_name", "").strip()
+        last_name = request.data.get("last_name", "").strip()
+        phone = request.data.get("phone", "").strip()
 
-        if not email or not password or not first_name or not last_name:
+        if not all([email, password, first_name, last_name]):
             return Response(
-                {"detail": "email, password, first_name and last_name are required"},
+                {"detail": "Email, password, first name, and last name are required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if User.objects.filter(email=email).exists():
             return Response(
-                {"detail": "User with this email already exists"},
+                {"detail": "An account with this email address already exists."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -53,11 +59,14 @@ class RegisterView(APIView):
             first_name=first_name,
             last_name=last_name,
             phone=phone,
+            role=UserRole.CUSTOMER,
         )
+
+        logger.info("New customer registered: %s (ID: %s)", user.email, user.id)
 
         return Response(
             {
-                "message": "User registered successfully",
+                "message": "Account created successfully.",
                 "user": {
                     "id": user.id,
                     "email": user.email,
@@ -71,48 +80,53 @@ class RegisterView(APIView):
 
 
 class LoginView(APIView):
-    permission_classes = [AllowAny]
+    """
+    Exchanges valid user credentials for a JSON Web Token pair (access + refresh).
+    """
+
+    permission_classes = [permissions.AllowAny]
 
     @extend_schema(
         tags=["Authentication"],
-        summary="User login",
-        description="Authenticates a user with email and password, returning JWT access and refresh tokens.",
+        summary="Authenticate and receive JWT tokens",
+        description="Returns an access token (for Bearer headers) and a rotating refresh token.",
         request=LoginRequestSerializer,
         responses={
             200: LoginResponseSerializer,
             401: OpenApiResponse(description="Invalid email or password"),
-            403: OpenApiResponse(description="User account is inactive"),
+            403: OpenApiResponse(description="Account is disabled"),
         },
     )
     def post(self, request):
-        email = request.data.get("email")
-        password = request.data.get("password")
+        email = request.data.get("email", "").strip().lower()
+        password = request.data.get("password", "")
 
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
             return Response(
-                {"detail": "Invalid email or password"},
+                {"detail": "Invalid credentials provided."},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
         if not user.check_password(password):
             return Response(
-                {"detail": "Invalid email or password"},
+                {"detail": "Invalid credentials provided."},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
         if not user.is_active:
             return Response(
-                {"detail": "User account is inactive"},
+                {"detail": "This user account has been disabled. Please contact an administrator."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
         refresh = RefreshToken.for_user(user)
+        logger.info("User logged in via API: %s", user.email)
 
         return Response(
             {
-                "message": "Login successful",
+                "message": "Authentication successful.",
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
                 "user": {
@@ -127,20 +141,19 @@ class LoginView(APIView):
 
 
 class MeView(APIView):
-    permission_classes = [IsAuthenticated]
+    """
+    Returns identity and role profile for the currently authenticated session.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
 
     @extend_schema(
         tags=["Authentication"],
-        summary="Get current user profile",
-        description="Returns details for the currently authenticated user.",
-        responses={
-            200: UserResponseSerializer,
-            401: OpenApiResponse(description="Authentication credentials were not provided or invalid"),
-        },
+        summary="Get active user profile",
+        responses={200: UserResponseSerializer},
     )
     def get(self, request):
         user = request.user
-
         return Response(
             {
                 "id": user.id,

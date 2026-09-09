@@ -1,223 +1,90 @@
+import logging
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
-from rest_framework import filters, status, viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import filters, permissions, status, viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from apps.users.permissions import IsSupportStaff
 from .models import RequestPriority, RequestStatus, ServiceRequest
 from .serializers import ServiceRequestSerializer
 
+logger = logging.getLogger(__name__)
+
 
 @extend_schema_view(
     list=extend_schema(
         tags=["Service Requests"],
         summary="List service requests",
-        description=(
-            "List service requests. Customers will only see their own requests. "
-            "Staff, Managers, and Admins can see and filter all requests."
-        ),
+        description="Fetch tickets. Customers see only their own requests; staff and managers view all tickets.",
         parameters=[
-            OpenApiParameter(
-                name="status",
-                type=str,
-                enum=[s.value for s in RequestStatus],
-                description="Filter by service request status",
-            ),
-            OpenApiParameter(
-                name="priority",
-                type=str,
-                enum=[p.value for p in RequestPriority],
-                description="Filter by priority level",
-            ),
-            OpenApiParameter(
-                name="category",
-                type=int,
-                description="Filter by category ID",
-            ),
-            OpenApiParameter(
-                name="created_by",
-                type=int,
-                description="Filter by creator user ID",
-            ),
+            OpenApiParameter(name="status", type=str, enum=[s.value for s in RequestStatus], description="Filter by status"),
+            OpenApiParameter(name="priority", type=str, enum=[p.value for p in RequestPriority], description="Filter by priority"),
+            OpenApiParameter(name="category", type=int, description="Filter by category ID"),
+            OpenApiParameter(name="created_by", type=int, description="Filter by requester user ID"),
         ],
     ),
     create=extend_schema(
         tags=["Service Requests"],
-        summary="Create a service request",
-        description="Customers can create new service requests. Request number is generated automatically.",
+        summary="Create a new service request",
+        description="Customers submit new tickets. Ticket sequence number is automatically generated.",
     ),
-    retrieve=extend_schema(
-        tags=["Service Requests"],
-        summary="Get service request details by ID",
-    ),
-    update=extend_schema(
-        tags=["Service Requests"],
-        summary="Update service request by ID",
-    ),
-    partial_update=extend_schema(
-        tags=["Service Requests"],
-        summary="Partially update service request by ID",
-    ),
-    destroy=extend_schema(
-        tags=["Service Requests"],
-        summary="Delete service request by ID",
-    ),
+    retrieve=extend_schema(tags=["Service Requests"], summary="Get service request details by ID"),
+    update=extend_schema(tags=["Service Requests"], summary="Update service request"),
+    partial_update=extend_schema(tags=["Service Requests"], summary="Partially update service request"),
+    destroy=extend_schema(tags=["Service Requests"], summary="Delete service request"),
 )
 class ServiceRequestViewSet(viewsets.ModelViewSet):
     """
-    API ViewSet for managing service requests.
-
-    Customers:
-        - Can create requests.
-        - Can view only their own requests.
-
-    Support Staff / Managers / Admins:
-        - Can view and manage all requests.
-        - Can filter, search, and order requests.
+    CRUD API for Service Requests.
+    Enforces customer boundaries (can only see/create their own requests)
+    while granting technicians and managers full operational visibility.
     """
 
     serializer_class = ServiceRequestSerializer
-
-    filter_backends = [
-        filters.SearchFilter,
-        filters.OrderingFilter,
-    ]
-
-    search_fields = [
-        "request_number",
-        "title",
-        "description",
-        "category__name",
-    ]
-
-    ordering_fields = [
-        "created_at",
-        "updated_at",
-        "priority",
-        "status",
-        "title",
-    ]
-
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["request_number", "title", "description", "category__name"]
+    ordering_fields = ["created_at", "updated_at", "priority", "status", "title"]
     ordering = ["-created_at"]
 
     def get_permissions(self):
-        """
-        Customers can create service requests.
-        Other actions require support staff, manager, or admin.
-        """
-
-        if self.action == "create":
-            return [IsAuthenticated()]
-
+        # Any authenticated user can submit a ticket or view their own
+        if self.action in {"create", "list", "retrieve"}:
+            return [permissions.IsAuthenticated()]
+        # Status changes, assignment, or deletion are restricted to staff
         return [IsSupportStaff()]
 
     def get_queryset(self):
-        """
-        Return service requests based on the logged-in user's role.
-        """
-
         user = self.request.user
+        qs = ServiceRequest.objects.select_related("category", "created_by").all()
 
-        queryset = (
-            ServiceRequest.objects
-            .select_related(
-                "category",
-                "created_by",
-            )
-            .all()
-        )
+        # Non-staff users are strictly limited to their own submitted tickets
+        if not user.is_support_staff:
+            qs = qs.filter(created_by=user)
 
-        # Customers can see only their own requests.
-        if user.role == "CUSTOMER":
-            queryset = queryset.filter(
-                created_by=user
-            )
+        # Dynamic query param filters
+        status_param = self.request.query_params.get("status")
+        if status_param:
+            qs = qs.filter(status=status_param)
 
-        # Filter by status
-        status_value = self.request.query_params.get("status")
+        priority_param = self.request.query_params.get("priority")
+        if priority_param:
+            qs = qs.filter(priority=priority_param)
 
-        if status_value:
-            queryset = queryset.filter(
-                status=status_value
-            )
+        category_param = self.request.query_params.get("category")
+        if category_param:
+            qs = qs.filter(category_id=category_param)
 
-        # Filter by priority
-        priority = self.request.query_params.get("priority")
+        created_by_param = self.request.query_params.get("created_by")
+        if created_by_param and user.is_support_staff:
+            qs = qs.filter(created_by_id=created_by_param)
 
-        if priority:
-            queryset = queryset.filter(
-                priority=priority
-            )
-
-        # Filter by category
-        category = self.request.query_params.get("category")
-
-        if category:
-            queryset = queryset.filter(
-                category_id=category
-            )
-
-        # Filter by created user
-        created_by = self.request.query_params.get("created_by")
-
-        if created_by:
-            queryset = queryset.filter(
-                created_by_id=created_by
-            )
-
-        return queryset
+        return qs
 
     def perform_create(self, serializer):
-        """
-        Automatically assign the logged-in user
-        as the creator of the service request.
-        """
+        # Always bind creator to current authenticated session
+        instance = serializer.save(created_by=self.request.user)
+        logger.info("Service request created: %s by user %s", instance.request_number, self.request.user.email)
 
-        serializer.save(
-            created_by=self.request.user
-        )
-
-    def update(self, request, *args, **kwargs):
-        """
-        Prevent changing created_by and request_number
-        through the API.
-        """
-
-        instance = self.get_object()
-
-        serializer = self.get_serializer(
-            instance,
-            data=request.data,
-            partial=False
-        )
-
-        serializer.is_valid(raise_exception=True)
-
-        serializer.save()
-
-        return Response(
-            serializer.data,
-            status=status.HTTP_200_OK
-        )
-
-    def partial_update(self, request, *args, **kwargs):
-        """
-        Allow partial updates.
-        """
-
-        instance = self.get_object()
-
-        serializer = self.get_serializer(
-            instance,
-            data=request.data,
-            partial=True
-        )
-
-        serializer.is_valid(raise_exception=True)
-
-        serializer.save()
-
-        return Response(
-            serializer.data,
-            status=status.HTTP_200_OK
-        )
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        logger.info("Service request updated: %s [status=%s]", instance.request_number, instance.status)

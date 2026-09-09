@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.http import HttpResponse
 from django.urls import include, path
 from drf_spectacular.views import (
     SpectacularAPIView,
@@ -26,6 +27,7 @@ from .views import (
     request_create,
     request_detail,
     request_update_status,
+    requests_export_csv,
     requests_list,
     ui_login,
     ui_logout,
@@ -33,6 +35,10 @@ from .views import (
 )
 
 urlpatterns = [
+    # Static browser utility endpoints
+    path("favicon.ico", lambda _: HttpResponse(status=204)),
+    path(".well-known/appspecific/com.chrome.devtools.json", lambda _: HttpResponse(status=204)),
+
     path("admin/", admin.site.urls),
 
     # ==================== OpenAPI / Swagger API Docs ====================
@@ -60,6 +66,7 @@ urlpatterns = [
 
     # Requests UI
     path("ui/requests/", requests_list, name="requests_list"),
+    path("ui/requests/export-csv/", requests_export_csv, name="requests_export_csv"),
     path("ui/requests/create/", request_create, name="request_create"),
     path("ui/requests/<int:pk>/", request_detail, name="request_detail"),
     path("ui/requests/<int:pk>/status/", request_update_status, name="request_update_status"),

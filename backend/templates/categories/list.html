@@ -1,13 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}Categories - Service Management{% endblock %}
+{% block title %}Service Categories — ServiceDesk Pro{% endblock %}
 
 {% block content %}
 
 <div class="page-header">
-    <div>
-        <h1>Service Categories</h1>
-        <p>Service request classification and routing categories.</p>
+    <div class="page-header-title">
+        <div class="breadcrumbs">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <span>/</span>
+            <span>Categories</span>
+        </div>
+        <h1>Service Classification & Routing</h1>
+        <p>Define functional domain categories for automatic classification and SLA tracking.</p>
     </div>
 </div>
 
@@ -15,70 +20,91 @@
     <!-- Left: Categories Table -->
     <div class="table-box" style="margin-bottom:0;">
         <div class="table-header">
-            <h2>Configured Categories</h2>
+            <h2><span>🏷️</span> Active Category Registry</h2>
+            <span style="font-size:12px; color:var(--text-muted); font-weight:700;">{{ categories|length }} Categories</span>
         </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Category Name</th>
-                    <th>Description</th>
-                    <th>Total Requests</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for cat in categories %}
-                <tr>
-                    <td><strong>{{ cat.name }}</strong></td>
-                    <td style="color:#64748b;">{{ cat.description|default:"—" }}</td>
-                    <td>
-                        <span style="font-weight:700; color:var(--primary);">{{ cat.request_count }}</span> tickets
-                    </td>
-                    <td>
-                        {% if cat.is_active %}
-                            <span class="badge badge-resolved">Active</span>
-                        {% else %}
-                            <span class="badge badge-closed">Inactive</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="4" class="empty-state">No categories configured yet.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Domain / Name</th>
+                        <th>Scope & Details</th>
+                        <th>Volume</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in categories %}
+                    <tr>
+                        <td>
+                            <div style="font-weight:700; color:var(--text-main); font-size:13.5px;">{{ cat.name }}</div>
+                        </td>
+                        <td>
+                            <span style="font-size:13px; color:var(--text-secondary);">{{ cat.description|default:"Standard service catalog category." }}</span>
+                        </td>
+                        <td>
+                            <span class="badge badge-open">
+                                {{ cat.request_count }} tickets
+                            </span>
+                        </td>
+                        <td>
+                            {% if cat.is_active %}
+                                <span class="badge badge-resolved">
+                                    <span class="badge-dot"></span> Active
+                                </span>
+                            {% else %}
+                                <span class="badge badge-closed">
+                                    <span class="badge-dot"></span> Inactive
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">🏷️</div>
+                                <div style="font-weight:700; color:var(--text-main);">No Categories Configured</div>
+                                <p style="font-size:13px; margin-top:4px;">Define categories to begin cataloging incoming requests.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <!-- Right: New Category Form (Admin / Manager) -->
+    <!-- Right: New Category Form -->
     <div>
         <div class="detail-card">
-            <h3>Add New Category</h3>
+            <div class="detail-card-header">
+                <h3>➕ Create Category</h3>
+            </div>
             {% if request.user.role != 'CUSTOMER' %}
                 <form method="post" action="{% url 'category_create' %}">
                     {% csrf_token %}
                     
                     <div class="form-group">
-                        <label for="name">Category Name *</label>
-                        <input type="text" id="name" name="name" class="form-control" placeholder="e.g. IT & Networking" required>
+                        <label for="name">Category Name <span class="required-star">*</span></label>
+                        <input type="text" id="name" name="name" class="form-control" placeholder="e.g., Cloud & Infrastructure, Network" required>
                     </div>
 
                     <div class="form-group">
-                        <label for="description">Description</label>
-                        <textarea id="description" name="description" class="form-control" rows="3" placeholder="Brief description of issues under this category..."></textarea>
+                        <label for="description">Scope & Description</label>
+                        <textarea id="description" name="description" class="form-control" rows="3" placeholder="Define typical issues under this service area..."></textarea>
                     </div>
 
                     <div class="form-group" style="display:flex; align-items:center; gap:8px;">
-                        <input type="checkbox" id="is_active" name="is_active" checked style="width:16px; height:16px;">
-                        <label for="is_active" style="margin-bottom:0; cursor:pointer;">Active</label>
+                        <input type="checkbox" id="is_active" name="is_active" checked style="width:16px; height:16px; cursor:pointer;">
+                        <label for="is_active" style="margin-bottom:0; cursor:pointer; font-weight:600;">Enable for ticket creation</label>
                     </div>
 
-                    <button type="submit" class="btn btn-primary" style="width:100%;">Save Category</button>
+                    <button type="submit" class="btn btn-primary" style="width:100%; margin-top:6px;">Save Category</button>
                 </form>
             {% else %}
-                <p style="font-size:13px; color:#64748b;">Only support staff, managers, and admins can add new categories.</p>
+                <p style="font-size:13px; color:var(--text-muted);">Manager or Admin permissions required to modify taxonomy categories.</p>
             {% endif %}
         </div>
     </div>

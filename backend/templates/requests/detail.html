@@ -1,181 +1,241 @@
 {% extends "base.html" %}
 
-{% block title %}Request {{ request_obj.request_number }} - Service Management{% endblock %}
+{% block title %}{{ request_obj.request_number }} — ServiceDesk Pro{% endblock %}
 
 {% block content %}
 
 <div class="page-header">
-    <div>
-        <div style="display:flex; align-items:center; gap:10px;">
-            <h1>{{ request_obj.request_number }}</h1>
-            <span class="badge badge-{{ request_obj.status|lower }}">{{ request_obj.get_status_display }}</span>
-            <span class="badge badge-priority-{{ request_obj.priority|lower }}">{{ request_obj.get_priority_display }} Priority</span>
+    <div class="page-header-title">
+        <div class="breadcrumbs">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <span>/</span>
+            <a href="{% url 'requests_list' %}">Requests</a>
+            <span>/</span>
+            <span>{{ request_obj.request_number }}</span>
         </div>
-        <p style="margin-top:6px; font-size:16px; font-weight:600; color:#334155;">{{ request_obj.title }}</p>
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <h1>{{ request_obj.request_number }}</h1>
+            <span class="badge badge-{{ request_obj.status|lower }}">
+                <span class="badge-dot"></span>
+                {{ request_obj.get_status_display }}
+            </span>
+            <span class="badge badge-priority-{{ request_obj.priority|lower }}">
+                {{ request_obj.get_priority_display }} Priority
+            </span>
+        </div>
+        <p style="font-size:16px; font-weight:700; color:var(--text-main); margin-top:4px;">{{ request_obj.title }}</p>
     </div>
     <div>
         <a href="{% url 'requests_list' %}" class="btn btn-secondary">← Back to Requests</a>
     </div>
 </div>
 
+<!-- Lifecycle Status Progress Stepper -->
+<div class="status-stepper">
+    <div class="stepper-step {% if request_obj.status == 'OPEN' %}active{% elif request_obj.status != 'CANCELLED' %}completed{% endif %}">
+        <div class="stepper-circle">1</div>
+        <div class="stepper-label">Open / Logged</div>
+    </div>
+    <div class="stepper-step {% if request_obj.status == 'ASSIGNED' %}active{% elif request_obj.status in 'IN_PROGRESS,RESOLVED,CLOSED' %}completed{% endif %}">
+        <div class="stepper-circle">2</div>
+        <div class="stepper-label">Assigned</div>
+    </div>
+    <div class="stepper-step {% if request_obj.status == 'IN_PROGRESS' %}active{% elif request_obj.status in 'RESOLVED,CLOSED' %}completed{% endif %}">
+        <div class="stepper-circle">3</div>
+        <div class="stepper-label">In Progress</div>
+    </div>
+    <div class="stepper-step {% if request_obj.status == 'RESOLVED' %}active{% elif request_obj.status == 'CLOSED' %}completed{% endif %}">
+        <div class="stepper-circle">4</div>
+        <div class="stepper-label">Resolved</div>
+    </div>
+    <div class="stepper-step {% if request_obj.status == 'CLOSED' %}completed{% endif %}">
+        <div class="stepper-circle">5</div>
+        <div class="stepper-label">Closed</div>
+    </div>
+</div>
+
 <div class="detail-grid">
-    <!-- Left Column: Description, Comments & Attachments -->
+    <!-- Left Column: Scope, Attachments, Discussion -->
     <div>
-        <!-- Description Card -->
+        <!-- Scope / Description Card -->
         <div class="detail-card">
-            <h3>Issue Description</h3>
-            <div style="font-size:15px; line-height:1.6; color:#334155; white-space:pre-line;">{{ request_obj.description }}</div>
+            <div class="detail-card-header">
+                <h3>📝 Issue Scope & Description</h3>
+                <span style="font-size:12px; color:var(--text-muted);">Category: <strong>{{ request_obj.category.name }}</strong></span>
+            </div>
+            <div style="font-size:14.5px; line-height:1.7; color:var(--text-secondary); white-space:pre-line; padding:4px 0;">
+                {{ request_obj.description }}
+            </div>
         </div>
 
         <!-- Attachments Section -->
         <div class="detail-card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #f1f5f9; padding-bottom:8px;">
-                <h3 style="margin-bottom:0; border-bottom:none; padding-bottom:0;">Attachments ({{ attachments.count }})</h3>
+            <div class="detail-card-header">
+                <h3>📎 Attached Files ({{ attachments|length }})</h3>
             </div>
 
             {% if attachments %}
-                <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;">
+                <div class="attachments-grid">
                     {% for att in attachments %}
-                        <a href="{{ att.file.url }}" target="_blank" class="attachment-chip">
-                            <span>📎</span>
-                            <span>{{ att.original_name }}</span>
-                            <span style="font-size:11px; color:#64748b;">({{ att.uploaded_by.first_name }})</span>
+                        <a href="{{ att.file.url }}" target="_blank" class="attachment-card">
+                            <div class="attachment-icon">📄</div>
+                            <div class="attachment-info">
+                                <div class="attachment-name" title="{{ att.original_name }}">{{ att.original_name }}</div>
+                                <div class="attachment-meta">Uploaded by {{ att.uploaded_by.first_name|default:att.uploaded_by.email }}</div>
+                            </div>
                         </a>
                     {% endfor %}
                 </div>
             {% else %}
-                <p style="font-size:13px; color:#94a3b8; margin-bottom:18px;">No files attached to this request.</p>
+                <p style="font-size:13.5px; color:var(--text-muted); padding:10px 0;">No documents or logs attached to this ticket.</p>
             {% endif %}
 
             <!-- Upload File Form -->
-            <form method="post" action="{% url 'request_add_attachment' pk=request_obj.id %}" enctype="multipart/form-data" style="display:flex; gap:10px; align-items:center; background:#f8fafc; padding:12px; border-radius:8px;">
+            <form method="post" action="{% url 'request_add_attachment' pk=request_obj.id %}" enctype="multipart/form-data" style="margin-top:20px; background:#f8fafc; border:1px dashed var(--card-border); padding:16px; border-radius:var(--radius-md); display:flex; gap:12px; align-items:center;">
                 {% csrf_token %}
-                <input type="file" name="file" class="form-control" style="font-size:12px;" required>
-                <button type="submit" class="btn btn-secondary btn-sm" style="flex-shrink:0;">Upload File</button>
+                <input type="file" name="file" class="form-control" style="font-size:13px; background:#ffffff;" required>
+                <button type="submit" class="btn btn-secondary btn-sm" style="flex-shrink:0;">Upload Document</button>
             </form>
         </div>
 
-        <!-- Comments Section -->
+        <!-- Activity & Comments Section -->
         <div class="detail-card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #f1f5f9; padding-bottom:8px;">
-                <h3 style="margin-bottom:0; border-bottom:none; padding-bottom:0;">Activity & Comments ({{ comments.count }})</h3>
+            <div class="detail-card-header">
+                <h3>💬 Activity & Communication Timeline ({{ comments|length }})</h3>
             </div>
 
             {% if comments %}
-                <div style="margin-bottom:20px;">
+                <div class="timeline-list">
                     {% for comm in comments %}
-                        <div class="comment-item">
-                            <div class="comment-meta">
-                                <span class="comment-author">{{ comm.user.first_name }} {{ comm.user.last_name }} ({{ comm.user.role }})</span>
-                                <span>{{ comm.created_at|date:"M d, Y H:i" }}</span>
+                        <div class="timeline-item">
+                            <div class="timeline-avatar">
+                                {{ comm.user.first_name|first|default:comm.user.email|first|upper }}
                             </div>
-                            <div style="font-size:14px; color:#1e293b;">{{ comm.message }}</div>
+                            <div class="timeline-body">
+                                <div class="timeline-header">
+                                    <div>
+                                        <span class="timeline-author">{{ comm.user.first_name }} {{ comm.user.last_name }}</span>
+                                        <span class="role-tag" style="font-size:10px; margin-left:4px;">{{ comm.user.role }}</span>
+                                    </div>
+                                    <span class="timeline-time">{{ comm.created_at|date:"M d, Y H:i" }}</span>
+                                </div>
+                                <div class="timeline-message">{{ comm.message }}</div>
+                            </div>
                         </div>
                     {% endfor %}
                 </div>
             {% else %}
-                <p style="font-size:13px; color:#94a3b8; margin-bottom:18px;">No comments yet. Start the conversation below.</p>
+                <p style="font-size:13.5px; color:var(--text-muted); padding:14px 0;">No discussion recorded yet. Post an update below.</p>
             {% endif %}
 
             <!-- Add Comment Form -->
-            <form method="post" action="{% url 'request_add_comment' pk=request_obj.id %}">
+            <form method="post" action="{% url 'request_add_comment' pk=request_obj.id %}" style="margin-top:22px;">
                 {% csrf_token %}
                 <div class="form-group">
-                    <textarea name="message" class="form-control" rows="3" placeholder="Write a comment or status update..." required></textarea>
+                    <label>Post an Update or Note</label>
+                    <textarea name="message" class="form-control" rows="3" placeholder="Add troubleshooting steps, updates, or customer notes..." required></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary btn-sm">Post Comment</button>
+                <button type="submit" class="btn btn-primary btn-sm">Submit Comment</button>
             </form>
         </div>
     </div>
 
-    <!-- Right Column: Meta Info, Status Action & Assignment -->
+    <!-- Right Column: Meta Info, Workflow Actions & Assignment -->
     <div>
-        <!-- Status Action Card -->
+        <!-- Status Transition Controller -->
         {% if request.user.role != 'CUSTOMER' %}
         <div class="detail-card">
-            <h3>Update Status</h3>
+            <div class="detail-card-header">
+                <h3>⚡ Update Ticket Status</h3>
+            </div>
             <form method="post" action="{% url 'request_update_status' pk=request_obj.id %}">
                 {% csrf_token %}
                 <div class="form-group">
-                    <label for="status">Change Status</label>
+                    <label for="status">Target Lifecycle State</label>
                     <select id="status" name="status" class="form-select">
                         {% for code, label in status_choices %}
                             <option value="{{ code }}" {% if request_obj.status == code %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <button type="submit" class="btn btn-primary btn-sm" style="width:100%;">Update Status</button>
+                <button type="submit" class="btn btn-primary btn-sm" style="width:100%;">Save Status Transition</button>
             </form>
         </div>
         {% endif %}
 
-        <!-- Assignment Info -->
+        <!-- Technician Assignment Widget -->
         <div class="detail-card">
-            <h3>Assignment</h3>
+            <div class="detail-card-header">
+                <h3>👤 Assigned Technician</h3>
+            </div>
             {% if assignment %}
                 <div class="meta-list">
                     <div class="meta-item">
-                        <span class="label">Assigned Technician:</span>
+                        <span class="label">Assigned Staff:</span>
                         <span class="value">{{ assignment.assigned_to.first_name }} {{ assignment.assigned_to.last_name }}</span>
                     </div>
                     <div class="meta-item">
-                        <span class="label">Email:</span>
-                        <span class="value">{{ assignment.assigned_to.email }}</span>
+                        <span class="label">Staff Email:</span>
+                        <span class="value" style="font-size:12.5px;">{{ assignment.assigned_to.email }}</span>
                     </div>
                     <div class="meta-item">
                         <span class="label">Assigned By:</span>
                         <span class="value">{{ assignment.assigned_by.first_name }} {{ assignment.assigned_by.last_name }}</span>
                     </div>
                     <div class="meta-item">
-                        <span class="label">Assigned Date:</span>
+                        <span class="label">Assigned At:</span>
                         <span class="value">{{ assignment.assigned_at|date:"M d, Y" }}</span>
                     </div>
                 </div>
             {% else %}
-                <p style="font-size:13px; color:#ef4444; margin-bottom:14px;">⚠️ Unassigned</p>
+                <div style="padding:10px 0; color:#ea580c; font-weight:700; font-size:13.5px;">
+                    ⚠️ Currently Unassigned
+                </div>
                 {% if request.user.role != 'CUSTOMER' %}
-                    <form method="post" action="{% url 'assignment_create' %}">
+                    <form method="post" action="{% url 'assignment_create' %}" style="margin-top:10px;">
                         {% csrf_token %}
                         <input type="hidden" name="service_request" value="{{ request_obj.id }}">
                         <div class="form-group">
-                            <label for="assigned_to">Assign Technician</label>
+                            <label for="assigned_to">Assign Support Staff</label>
                             <select id="assigned_to" name="assigned_to" class="form-select" required>
-                                <option value="">Choose Staff...</option>
+                                <option value="">Select Technician...</option>
                                 {% for staff in staff_users %}
                                     <option value="{{ staff.id }}">{{ staff.first_name }} {{ staff.last_name }} ({{ staff.role }})</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <button type="submit" class="btn btn-success btn-sm" style="width:100%;">Assign Now</button>
+                        <button type="submit" class="btn btn-success btn-sm" style="width:100%;">Confirm Assignment</button>
                     </form>
                 {% endif %}
             {% endif %}
         </div>
 
-        <!-- Request Details Meta -->
+        <!-- Meta Details Summary -->
         <div class="detail-card">
-            <h3>Ticket Details</h3>
+            <div class="detail-card-header">
+                <h3>📋 Ticket Audit Log</h3>
+            </div>
             <div class="meta-list">
                 <div class="meta-item">
-                    <span class="label">Category:</span>
+                    <span class="label">Service Category:</span>
                     <span class="value">{{ request_obj.category.name }}</span>
                 </div>
                 <div class="meta-item">
-                    <span class="label">Created By:</span>
+                    <span class="label">Requested By:</span>
                     <span class="value">{{ request_obj.created_by.first_name }} {{ request_obj.created_by.last_name }}</span>
                 </div>
                 <div class="meta-item">
-                    <span class="label">Requester Email:</span>
-                    <span class="value">{{ request_obj.created_by.email }}</span>
+                    <span class="label">Contact Email:</span>
+                    <span class="value" style="font-size:12px;">{{ request_obj.created_by.email }}</span>
                 </div>
                 <div class="meta-item">
-                    <span class="label">Created At:</span>
+                    <span class="label">Logged Date:</span>
                     <span class="value">{{ request_obj.created_at|date:"M d, Y H:i" }}</span>
                 </div>
                 {% if request_obj.resolved_at %}
                 <div class="meta-item">
                     <span class="label">Resolved At:</span>
-                    <span class="value">{{ request_obj.resolved_at|date:"M d, Y H:i" }}</span>
+                    <span class="value" style="color:#059669;">{{ request_obj.resolved_at|date:"M d, Y H:i" }}</span>
                 </div>
                 {% endif %}
                 {% if request_obj.closed_at %}

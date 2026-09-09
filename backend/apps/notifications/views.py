@@ -1,6 +1,6 @@
 from drf_spectacular.utils import extend_schema, extend_schema_view
-from rest_framework import status, viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import Notification
@@ -11,32 +11,33 @@ from .serializers import NotificationSerializer
     list=extend_schema(
         tags=["Notifications"],
         summary="List user notifications",
-        description="Returns all notifications belonging to the logged-in user.",
+        description="Returns notification stream for the currently authenticated user.",
     ),
-    retrieve=extend_schema(tags=["Notifications"], summary="Get notification details by ID"),
-    update=extend_schema(tags=["Notifications"], summary="Update notification (e.g. mark as read)"),
-    partial_update=extend_schema(tags=["Notifications"], summary="Partially update notification (e.g. is_read)"),
-    destroy=extend_schema(tags=["Notifications"], summary="Delete a notification"),
-    create=extend_schema(
-        tags=["Notifications"],
-        summary="Create notification (Disabled for direct client creation)",
-        responses={405: None},
-    ),
+    retrieve=extend_schema(tags=["Notifications"], summary="Get notification by ID"),
+    update=extend_schema(tags=["Notifications"], summary="Update notification read status"),
+    partial_update=extend_schema(tags=["Notifications"], summary="Partially update notification"),
+    destroy=extend_schema(tags=["Notifications"], summary="Delete notification"),
 )
 class NotificationViewSet(viewsets.ModelViewSet):
+    """
+    User notification hub.
+    Allows users to read, acknowledge, or clear their alerts.
+    """
+
     serializer_class = NotificationSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Notification.objects.filter(
-            user=self.request.user
-        )
+        return Notification.objects.filter(user=self.request.user)
 
     def create(self, request, *args, **kwargs):
         return Response(
-            {"detail": "Notifications cannot be created through this endpoint."},
+            {"detail": "Notifications are system-dispatched and cannot be posted directly via API."},
             status=status.HTTP_405_METHOD_NOT_ALLOWED,
         )
 
-    def perform_update(self, serializer):
-        serializer.save(user=self.request.user)
+    @action(detail=False, methods=["post"], url_path="mark-all-read")
+    def mark_all_read(self, request):
+        """Bulk acknowledges all unread notifications for the active user."""
+        updated = Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+        return Response({"detail": f"Acknowledged {updated} notifications.", "marked_count": updated})

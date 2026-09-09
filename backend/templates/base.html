@@ -4,40 +4,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Service Management{% endblock %}</title>
+    <title>{% block title %}ServiceDesk Pro — Enterprise Service Management{% endblock %}</title>
+    
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <!-- Main Stylesheet -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
 
+    <!-- Top Navigation Header -->
     <header class="header">
-        <div class="brand-area">
-            <div class="brand-logo">SM</div>
-            <h2>SERVICE MANAGEMENT</h2>
+        <a href="{% url 'dashboard' %}" class="brand-area">
+            <div class="brand-logo-icon">SM</div>
+            <div class="brand-text">
+                <h2>ServiceDesk Pro</h2>
+                <span>Enterprise Management</span>
+            </div>
+        </a>
+
+        {% if request.user.is_authenticated %}
+        <div class="header-center">
+            <form action="{% url 'requests_list' %}" method="get" class="search-bar-trigger">
+                <span>🔍</span>
+                <input type="text" name="search" placeholder="Search tickets, IDs, topics... (Press Enter)" value="{{ request.GET.search|default:'' }}">
+            </form>
         </div>
+        {% endif %}
 
         <div class="header-actions">
             {% if request.user.is_authenticated %}
-                <div class="user-badge">
-                    <span>{{ request.user.email }}</span>
-                    <span class="role-tag">{{ request.user.role }}</span>
-                </div>
+                <a href="{% url 'notifications_list' %}" class="nav-icon-btn" title="Notifications">
+                    <span>🔔</span>
+                    {% if unread_notifications_count %}
+                        <span class="pulse-badge">{{ unread_notifications_count }}</span>
+                    {% endif %}
+                </a>
+
                 {% if request.user.is_staff or request.user.role == 'ADMIN' %}
-                    <a href="/admin/" target="_blank">Django Admin</a>
+                    <a href="/admin/" target="_blank" class="nav-icon-btn" title="Django Admin Panel">
+                        <span>⚙️</span>
+                    </a>
                 {% endif %}
+
+                <a href="/api/docs/" target="_blank" class="nav-icon-btn" title="REST API Docs (Swagger)">
+                    <span>⚡</span>
+                </a>
+
+                <div class="user-profile-menu">
+                    <div class="user-avatar">
+                        {{ request.user.first_name|first|default:request.user.email|first|upper }}
+                    </div>
+                    <div class="user-meta">
+                        <span class="user-name">{{ request.user.first_name|default:request.user.email }}</span>
+                        <span class="user-role">{{ request.user.role }}</span>
+                    </div>
+                </div>
+
                 <form action="{% url 'ui_logout' %}" method="post" style="display:inline;">
                     {% csrf_token %}
-                    <button type="submit" class="btn-logout">Logout</button>
+                    <button type="submit" class="btn btn-secondary btn-sm" style="color:#ef4444; border-color:#fecaca;" title="Sign out of account">
+                        Sign Out
+                    </button>
                 </form>
             {% else %}
-                <a href="{% url 'ui_login' %}">Login</a>
-                <a href="{% url 'ui_register' %}" class="btn btn-primary btn-sm">Register</a>
+                <a href="{% url 'ui_login' %}" class="btn btn-secondary btn-sm">Sign In</a>
+                <a href="{% url 'ui_register' %}" class="btn btn-primary btn-sm">Get Started</a>
             {% endif %}
         </div>
     </header>
 
+    <!-- Layout Shell -->
     <div class="layout">
+        <!-- Sidebar Navigation -->
         <aside class="sidebar">
-            <div class="sidebar-heading">Navigation</div>
+            <div class="sidebar-section-title">Main Workspace</div>
             
             <a href="{% url 'dashboard' %}" class="{% if active_tab == 'dashboard' %}active{% endif %}">
                 <span class="nav-icon">📊</span>
@@ -46,22 +93,36 @@
 
             <a href="{% url 'requests_list' %}" class="{% if active_tab == 'requests' %}active{% endif %}">
                 <span class="nav-icon">📋</span>
-                <span>Requests</span>
+                <span>Service Requests</span>
             </a>
+
+            <a href="{% url 'request_create' %}" class="{% if active_tab == 'create_request' %}active{% endif %}" style="color:#818cf8; font-weight:600;">
+                <span class="nav-icon">➕</span>
+                <span>New Ticket</span>
+            </a>
+
+            <div class="sidebar-section-title">Operations & Collaboration</div>
 
             <a href="{% url 'assignments_list' %}" class="{% if active_tab == 'assignments' %}active{% endif %}">
                 <span class="nav-icon">👤</span>
-                <span>Assignments</span>
+                <span>Staff Assignments</span>
             </a>
 
             <a href="{% url 'attachments_list' %}" class="{% if active_tab == 'attachments' %}active{% endif %}">
                 <span class="nav-icon">📎</span>
-                <span>Attachments</span>
+                <span>File Attachments</span>
             </a>
 
             <a href="{% url 'comments_list' %}" class="{% if active_tab == 'comments' %}active{% endif %}">
                 <span class="nav-icon">💬</span>
-                <span>Comments</span>
+                <span>Ticket Comments</span>
+            </a>
+
+            <div class="sidebar-section-title">Configuration</div>
+
+            <a href="{% url 'categories_list' %}" class="{% if active_tab == 'categories' %}active{% endif %}">
+                <span class="nav-icon">🏷️</span>
+                <span>Service Categories</span>
             </a>
 
             <a href="{% url 'notifications_list' %}" class="{% if active_tab == 'notifications' %}active{% endif %}">
@@ -72,31 +133,36 @@
                 {% endif %}
             </a>
 
-            <a href="{% url 'categories_list' %}" class="{% if active_tab == 'categories' %}active{% endif %}">
-                <span class="nav-icon">🏷️</span>
-                <span>Categories</span>
-            </a>
-
-            <div class="sidebar-heading" style="margin-top: auto;">Account</div>
-            {% if request.user.is_authenticated %}
-                <form action="{% url 'ui_logout' %}" method="post" style="display:block; padding: 0 4px;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn-logout" style="width:100%; text-align:left; color:#f87171; padding: 10px 14px;">🚪 Sign Out</button>
-                </form>
-            {% else %}
-                <a href="{% url 'ui_login' %}">
-                    <span class="nav-icon">🔑</span>
-                    <span>Sign In</span>
-                </a>
-            {% endif %}
+            <div class="sidebar-footer">
+                {% if request.user.is_authenticated %}
+                    <form action="{% url 'ui_logout' %}" method="post" style="display:block;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-secondary btn-sm" style="width:100%; justify-content:flex-start; color:#f87171; background:transparent; border-color:var(--sidebar-border);">
+                            <span style="margin-right:6px;">🚪</span> Sign Out
+                        </button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'ui_login' %}" style="color:#60a5fa;">
+                        <span class="nav-icon">🔑</span>
+                        <span>Sign In</span>
+                    </a>
+                {% endif %}
+            </div>
         </aside>
 
+        <!-- Main Content Area -->
         <main class="content">
             {% if messages %}
                 <div class="alerts-container">
                     {% for message in messages %}
                         <div class="alert alert-{{ message.tags|default:'info' }}">
-                            <span>{{ message }}</span>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span>
+                                    {% if message.tags == 'success' %}✅{% elif message.tags == 'error' or message.tags == 'danger' %}⚠️{% else %}ℹ️{% endif %}
+                                </span>
+                                <span>{{ message }}</span>
+                            </div>
+                            <button onclick="this.parentElement.remove()" style="background:none; border:none; cursor:pointer; font-size:14px; opacity:0.6;">✕</button>
                         </div>
                     {% endfor %}
                 </div>
@@ -107,5 +173,27 @@
         </main>
     </div>
 
+    <!-- Instant Navigation Prefetch Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const prefetchedUrls = new Set();
+            function prefetch(url) {
+                if (!url || prefetchedUrls.has(url) || url.startsWith('#') || url.includes('/logout/') || url.includes('/admin/')) return;
+                prefetchedUrls.add(url);
+                const link = document.createElement('link');
+                link.rel = 'prefetch';
+                link.href = url;
+                document.head.appendChild(link);
+            }
+
+            document.querySelectorAll('a[href^="/"], a[href^="' + window.location.origin + '"]').forEach(function(anchor) {
+                const href = anchor.getAttribute('href');
+                if (href && !href.startsWith('#') && !href.includes('logout') && !href.includes('admin')) {
+                    anchor.addEventListener('mouseenter', function() { prefetch(href); }, { passive: true });
+                    anchor.addEventListener('touchstart', function() { prefetch(href); }, { passive: true });
+                }
+            });
+        });
+    </script>
 </body>
 </html>

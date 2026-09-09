@@ -13,7 +13,7 @@ This is a Django Service Management application with:
 1. **requirements.txt** - Added Gunicorn, WhiteNoise, dj-database-url
 2. **config/settings.py** - Production security settings, static files, WhiteNoise middleware
 3. **.gitignore** - Comprehensive ignores for secrets, virtual env, cache
-4. **.env.example** - Template for environment variables (NO SECRETS)
+4. **.env** - Environment variables and configuration settings
 5. **render.yaml** - Render deployment configuration
 6. **Procfile** - Alternative deployment configuration
 7. **build.sh** - Automated build script
@@ -35,9 +35,10 @@ pip install -r requirements.txt
 ```
 
 ### Configure Environment Variables
-1. Copy .env.example to .env
+Verify configuration in `.env`:
 ```bash
-copy .env.example .env
+# Edit .env with your environment settings
+```
 ```
 
 2. Update .env with your actual values:

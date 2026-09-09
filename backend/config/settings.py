@@ -31,21 +31,30 @@ SECRET_KEY = os.getenv(
     "django-insecure-2fac#wxx+bnur-ivb_^d1&&_*ofvl)^0g2ky83sgh#kf8hl#x$",
 )
 
-DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+DEBUG = os.getenv("DEBUG", "True").lower() in ("true", "1", "t")
 
-ALLOWED_HOSTS = os.getenv(
-    "ALLOWED_HOSTS",
-    "localhost,127.0.0.1"
-).split(",")
+ALLOWED_HOSTS = ["*"] if DEBUG else [
+    host.strip()
+    for host in os.getenv("ALLOWED_HOSTS", "*").split(",")
+    if host.strip()
+] or ["*"]
 
-CSRF_TRUSTED_ORIGINS = os.getenv(
-    "CSRF_TRUSTED_ORIGINS",
-    ""
-).split(",")
+_csrf_origins = os.getenv("CSRF_TRUSTED_ORIGINS", "")
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in _csrf_origins.split(",")
+    if origin.strip()
+] or [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://0.0.0.0:8000",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
 
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-# Render / reverse proxy HTTPS configuration
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
 # ============================================================
@@ -145,6 +154,9 @@ DATABASES = {
 
         "PORT": os.getenv("DB_PORT", "5432"),
 
+        "CONN_MAX_AGE": int(os.getenv("CONN_MAX_AGE", "0")),
+        "CONN_HEALTH_CHECKS": True,
+
         "OPTIONS": {
             "sslmode": os.getenv(
                 "PGSSLMODE",
@@ -153,6 +165,21 @@ DATABASES = {
         },
     }
 }
+
+
+# ============================================================
+# CACHING & SESSIONS
+# ============================================================
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "service-management-locmem-cache",
+        "TIMEOUT": 300,
+    }
+}
+
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
 
 # ============================================================

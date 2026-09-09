@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import Comment
@@ -25,5 +26,8 @@ class CommentSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
-    def get_user_name(self, obj):
-        return f"{obj.user.first_name} {obj.user.last_name}"
+    @extend_schema_field(serializers.CharField)
+    def get_user_name(self, obj) -> str:
+        if obj.user:
+            return f"{obj.user.first_name} {obj.user.last_name}".strip() or obj.user.email
+        return ""

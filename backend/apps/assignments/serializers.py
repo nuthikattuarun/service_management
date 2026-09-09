@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import Assignment
@@ -31,8 +32,14 @@ class AssignmentSerializer(serializers.ModelSerializer):
             "request_number",
         ]
 
-    def get_assigned_to_name(self, obj):
-        return f"{obj.assigned_to.first_name} {obj.assigned_to.last_name}"
+    @extend_schema_field(serializers.CharField)
+    def get_assigned_to_name(self, obj) -> str:
+        if obj.assigned_to:
+            return f"{obj.assigned_to.first_name} {obj.assigned_to.last_name}".strip() or obj.assigned_to.email
+        return ""
 
-    def get_assigned_by_name(self, obj):
-        return f"{obj.assigned_by.first_name} {obj.assigned_by.last_name}"
+    @extend_schema_field(serializers.CharField)
+    def get_assigned_by_name(self, obj) -> str:
+        if obj.assigned_by:
+            return f"{obj.assigned_by.first_name} {obj.assigned_by.last_name}".strip() or obj.assigned_by.email
+        return ""

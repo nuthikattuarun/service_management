@@ -1,13 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}Attachments - Service Management{% endblock %}
+{% block title %}File Attachments Repository — ServiceDesk Pro{% endblock %}
 
 {% block content %}
 
 <div class="page-header">
-    <div>
-        <h1>Attachments Repository</h1>
-        <p>View, download, and manage uploaded files across all service requests.</p>
+    <div class="page-header-title">
+        <div class="breadcrumbs">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <span>/</span>
+            <span>Attachments</span>
+        </div>
+        <h1>File Attachments Repository</h1>
+        <p>Browse diagnostic logs, screenshots, invoices, and project specifications.</p>
     </div>
 </div>
 
@@ -15,75 +20,90 @@
     <!-- Left: Attachments Table -->
     <div class="table-box" style="margin-bottom:0;">
         <div class="table-header">
-            <h2>All Uploaded Files</h2>
+            <h2><span>📎</span> Document Repository</h2>
+            <span style="font-size:12px; color:var(--text-muted); font-weight:700;">{{ attachments|length }} Documents</span>
         </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>File Name</th>
-                    <th>Associated Request</th>
-                    <th>Uploaded By</th>
-                    <th>Date</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for att in attachments %}
-                <tr>
-                    <td>
-                        <div style="font-weight:600; display:flex; align-items:center; gap:8px;">
-                            <span>📎</span>
-                            <span>{{ att.original_name }}</span>
-                        </div>
-                    </td>
-                    <td>
-                        <a href="{% url 'request_detail' pk=att.service_request.id %}" style="color:var(--primary); font-weight:700; text-decoration:none;">
-                            {{ att.service_request.request_number }}
-                        </a>
-                    </td>
-                    <td>{{ att.uploaded_by.first_name }} {{ att.uploaded_by.last_name }}</td>
-                    <td>{{ att.uploaded_at|date:"M d, Y" }}</td>
-                    <td>
-                        <a href="{{ att.file.url }}" target="_blank" class="btn btn-secondary btn-sm">Download / View</a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="empty-state">No attachments have been uploaded yet.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Document Name</th>
+                        <th>Target Ticket</th>
+                        <th>Uploaded By</th>
+                        <th>Upload Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for att in attachments %}
+                    <tr>
+                        <td>
+                            <div style="font-weight:700; color:var(--text-main); display:flex; align-items:center; gap:8px;">
+                                <span style="font-size:18px;">📄</span>
+                                <span>{{ att.original_name }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <a href="{% url 'request_detail' pk=att.service_request.id %}" style="color:var(--primary); font-family:monospace; font-weight:700; text-decoration:none;">
+                                {{ att.service_request.request_number }}
+                            </a>
+                        </td>
+                        <td>
+                            <span style="font-size:13px; color:var(--text-secondary);">{{ att.uploaded_by.first_name|default:att.uploaded_by.email }}</span>
+                        </td>
+                        <td>
+                            <span style="font-size:12.5px; color:var(--text-muted);">{{ att.uploaded_at|date:"M d, Y" }}</span>
+                        </td>
+                        <td>
+                            <a href="{{ att.file.url }}" target="_blank" class="btn btn-secondary btn-sm">Download ⬇️</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📁</div>
+                                <div style="font-weight:700; color:var(--text-main);">No Attachments Stored</div>
+                                <p style="font-size:13px; margin-top:4px;">Upload files directly to any active service request.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <!-- Right: Upload Form -->
     <div>
         <div class="detail-card">
-            <h3>Upload New File</h3>
+            <div class="detail-card-header">
+                <h3>📤 Upload Document</h3>
+            </div>
             {% if requests %}
                 <form method="post" action="{% url 'attachment_create' %}" enctype="multipart/form-data">
                     {% csrf_token %}
                     
                     <div class="form-group">
-                        <label for="service_request">Service Request *</label>
+                        <label for="service_request">Target Ticket <span class="required-star">*</span></label>
                         <select id="service_request" name="service_request" class="form-select" required>
                             <option value="">Select ticket...</option>
                             {% for req in requests %}
-                                <option value="{{ req.id }}">{{ req.request_number }} - {{ req.title|truncatechars:28 }}</option>
+                                <option value="{{ req.id }}">{{ req.request_number }} — {{ req.title|truncatechars:30 }}</option>
                             {% endfor %}
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label for="file">Select File *</label>
+                        <label for="file">Document / File <span class="required-star">*</span></label>
                         <input type="file" id="file" name="file" class="form-control" required>
                     </div>
 
-                    <button type="submit" class="btn btn-primary" style="width:100%;">Upload File</button>
+                    <button type="submit" class="btn btn-primary" style="width:100%; margin-top:6px;">Upload to Repository</button>
                 </form>
             {% else %}
-                <p style="font-size:13px; color:#64748b;">No service requests available for attachment upload.</p>
+                <p style="font-size:13px; color:var(--text-muted);">Create a ticket first to link files.</p>
             {% endif %}
         </div>
     </div>
